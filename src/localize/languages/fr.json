@@ -1,0 +1,35 @@
+{
+  "common": {
+    "version": "Version",
+    "invalid_configuration": "Paramétrage incorrect",
+    "show_warning": "Afficher les avertissements",
+    "card": {
+      "name": "Carte Île de France Mobilité",
+      "description": "Une carte toute simple pour afficher les horaires de prochains passages sur les réseaux d'Île de France Mobilité"
+    }
+  },
+  "config": {
+    "required": {
+      "name": "Nécessaire",
+      "secondary": "Paramètres nécessaires au fonctionnement de la carte"
+    },
+    "optional": {
+      "name": "Optionnel",
+      "secondary": "Paramètres optionnels"
+    },
+    "parameters": {
+      "station": "Station",
+      "line": "Ligne",
+      "way": "Direction",
+      "name": "Nom de la carte"
+    }
+  },
+  "timetable": {
+    "headers": {
+      "mission": "Code mission",
+      "destination": "Destination",
+      "next": "Prochains départs"
+    },
+    "lastupdated": "Dernière mise à jour"
+  }
+}

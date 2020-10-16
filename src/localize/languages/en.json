@@ -1,0 +1,35 @@
+{
+  "common": {
+    "version": "Version",
+    "invalid_configuration": "Invalid configuration",
+    "show_warning": "Show Warning",
+    "card": {
+      "name": "Ile de France Mobilite Card",
+      "description": "A simple card to show upcoming vehicles on the Ile de France Mobilite networks"
+    }
+  },
+  "config": {
+    "required": {
+      "name": "Required",
+      "secondary": "Required parameters for this card to function"
+    },
+    "optional": {
+      "name": "Optional",
+      "secondary": "Optional parameters"
+    },
+    "parameters": {
+      "station": "Station",
+      "line": "Line",
+      "way": "Way",
+      "name": "Card name"
+    }
+  },
+  "timetable": {
+    "headers": {
+      "mission": "Mission code",
+      "destination": "Destination",
+      "next": "Next departures"
+    },
+    "lastupdated": "Last updated at"
+  }
+}
