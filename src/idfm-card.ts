@@ -123,10 +123,10 @@ export class IdFMCard extends LitElement {
                     <td><span class="idfm-destination">${schedule.lineDirection}</span></td>
                     <td class="idfm-delay-msg">
                       <div class="idfm-delay-div">
-                        <span class="idfm-delay">${schedule.time ?? ''}</span>
+                        <span class="idfm-delay">${schedule.time ? schedule.time : ''}</span>
                         <span class="idfm-min">${schedule.time ? 'min' : ''}</span>
                       </div>
-                      <span class="idfm-msg">${schedule.schedule ?? ''}</span>
+                      <span class="idfm-msg">${schedule.schedule ? schedule.schedule : ''}</span>
                     </td>
                   </tr>
                 `,
