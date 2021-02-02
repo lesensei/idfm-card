@@ -23,12 +23,14 @@ console.info(
   'color: white; font-weight: bold; background: dimgray',
 );
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 (window as any).customCards = (window as any).customCards || [];
 (window as any).customCards.push({
   type: 'idfm-card',
   name: localize('common.card.name'),
   description: localize('common.card.description'),
 });
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 interface Schedule {
   lineId: string;
@@ -47,7 +49,7 @@ export class IdFMCard extends LitElement {
     return document.createElement('idfm-card-editor') as LovelaceCardEditor;
   }
 
-  public static getStubConfig(): object {
+  public static getStubConfig(): Record<string, unknown> {
     return {};
   }
 
@@ -76,7 +78,7 @@ export class IdFMCard extends LitElement {
 
   private getSchedules(card: IdFMCard): void {
     fetch(`https://api-iv.iledefrance-mobilites.fr/lines/${card._config.line}/stops/${card._config.station}/realtime`)
-      .then(response => {
+      .then((response) => {
         if (!response.ok) {
           card._error = true;
           throw new Error(response.statusText);
@@ -84,7 +86,7 @@ export class IdFMCard extends LitElement {
         card._error = false;
         return response.json();
       })
-      .then(data => {
+      .then((data) => {
         card._lastUpdated = new Date();
         card._schedules = data.filter((element: Schedule) => {
           if (card._config.way == 'AR') return true;
@@ -116,7 +118,7 @@ export class IdFMCard extends LitElement {
         ><table class="timetable">
           <tbody>
             ${this._schedules.map(
-              schedule =>
+              (schedule) =>
                 html`
                   <tr class="idfm-entry">
                     <td><span class="idfm-code">${schedule.vehicleName}</span></td>
@@ -134,11 +136,7 @@ export class IdFMCard extends LitElement {
           </tbody>
         </table>
         <span class="lastUpdated">${localize('timetable.lastupdated')}: ${this._lastUpdated.toLocaleTimeString()}</span>
-        ${this._error
-          ? html`
-              <span class="updateError"> !</span>
-            `
-          : ''}
+        ${this._error ? html`<span class="updateError"> !</span>` : ''}
       </ha-card>
     `;
   }
@@ -150,9 +148,7 @@ export class IdFMCard extends LitElement {
   }
 
   private showWarning(warning: string): TemplateResult {
-    return html`
-      <hui-warning>${warning}</hui-warning>
-    `;
+    return html`<hui-warning>${warning}</hui-warning>`;
   }
 
   private showError(error: string): TemplateResult {
@@ -163,9 +159,7 @@ export class IdFMCard extends LitElement {
       origConfig: this._config,
     });
 
-    return html`
-      ${errorCard}
-    `;
+    return html`${errorCard}`;
   }
 
   static get styles(): CSSResult {

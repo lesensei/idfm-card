@@ -22,7 +22,7 @@ declare global {
 class ActionHandler extends HTMLElement implements ActionHandler {
   public holdTime = 500;
 
-  public ripple: any;
+  public ripple: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   protected timer?: number;
 
@@ -48,7 +48,7 @@ class ActionHandler extends HTMLElement implements ActionHandler {
     this.appendChild(this.ripple);
     this.ripple.primary = true;
 
-    ['touchcancel', 'mouseout', 'mouseup', 'touchmove', 'mousewheel', 'wheel', 'scroll'].forEach(ev => {
+    ['touchcancel', 'mouseout', 'mouseup', 'touchmove', 'mousewheel', 'wheel', 'scroll'].forEach((ev) => {
       document.addEventListener(
         ev,
         () => {
