@@ -1,4 +1,3 @@
 default_config:
 lovelace:
-  mode: yaml
 demo:

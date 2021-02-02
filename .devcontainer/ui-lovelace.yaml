@@ -1,9 +1,10 @@
 resources:
-  - url: http://127.0.0.1:5000/ratp-card.js
+  - url: http://127.0.0.1:5000/idfm-card.js
     type: module
 views:
   - cards:
-      - type: custom:ratp-card
-        name: Ratp Card Development
-        entity: sun.sun
-        test_gui: true
+      - type: 'custom:idfm-card'
+        name: 'Prochains passages'
+        station: 'stop_area:0:SA:8775804'
+        line: 'line:0:810:A'
+        way: 'A'
