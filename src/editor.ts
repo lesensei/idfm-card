@@ -19,21 +19,18 @@ const options = {
   },
 };
 
-interface Line {
-  id: string;
-  name: string;
-}
-
 @customElement('idfm-card-editor')
 export class IdFMCardEditor extends LitElement implements LovelaceCardEditor {
   @property() public hass?: HomeAssistant;
   @property() private _config?: IdFMCardConfig;
   @property() private _toggle?: boolean;
-  /*private _lineList: Array<Line> = [];
-  private _lineType = '';*/
 
   public setConfig(config: IdFMCardConfig): void {
     this._config = config;
+  }
+
+  constructor() {
+    super();
   }
 
   get _name(): string {
@@ -43,14 +40,6 @@ export class IdFMCardEditor extends LitElement implements LovelaceCardEditor {
 
     return '';
   }
-
-  /*get _lineType(): string {
-    if (this._config) {
-      return this._config.lineType || '';
-    }
-
-    return '';
-  }*/
 
   get _line(): string {
     if (this._config) {
@@ -76,6 +65,12 @@ export class IdFMCardEditor extends LitElement implements LovelaceCardEditor {
     return '';
   }
 
+  /*connectedCallback(): void {
+    super.connectedCallback();
+    document.querySelector("#line-combo vaadin-combo-box")?.setAttribute("items", JSON.stringify(this._lines));
+    console.log('test12');
+  }*/
+
   protected render(): TemplateResult | void {
     if (!this.hass) {
       return html``;
@@ -96,21 +91,12 @@ export class IdFMCardEditor extends LitElement implements LovelaceCardEditor {
         ${options.required.show
           ? html`
               <div class="values">
-                <!--<paper-dropdown-menu
-                  label="${localize('config.parameters.lineType')} (${localize('config.required.name')})"
+                <paper-input
+                  name="helper-url"
+                  always-float-label
+                  label="${localize('config.parameters.url')}"
                   @value-changed=${this._valueChanged}
-                  name="lineType"
-                >
-                  <paper-listbox slot="dropdown-content" class="dropdown-content">
-                    <paper-item>Bus</paper-item>
-                    <paper-item>TER</paper-item>
-                    <paper-item>RER</paper-item>
-                    <paper-item>Metro</paper-item>
-                    <paper-item>Navette</paper-item>
-                    <paper-item>Train</paper-item>
-                    <paper-item>Tramway</paper-item>
-                  </paper-listbox>
-                </paper-dropdown-menu> -->
+                ></paper-input>
                 <paper-input
                   always-float-label
                   label="${localize('config.parameters.line')} (${localize('config.required.name')})"
@@ -173,13 +159,33 @@ export class IdFMCardEditor extends LitElement implements LovelaceCardEditor {
   }
 
   private _valueChanged(ev): void {
-    //console.log((ev.target.configValue ?? ev.target.name) + ' changed to ' + ev.target.value);
-    /*if (ev.target && ev.target.name && ev.target.name === 'lineType') {
-      this._lineType = ev.target.value;
-      return;
-    }*/
+    //console.log(ev);
+    const name =
+      ev.target.configValue === undefined || ev.target.configValue === null ? ev.target.name : ev.target.configValue;
+    //console.log(name + ' changed to ' + ev.target.value);
     if (!this._config || !this.hass) {
       return;
+    }
+    if (name == 'helper-url') {
+      const url: string = decodeURIComponent(ev.target.value);
+      let tmpLine = '';
+      let tmpStation = '';
+      const lineMatch = url.match(/(line[:\w]+)/);
+      if (lineMatch && lineMatch.length > 1) {
+        tmpLine = lineMatch[1];
+      }
+      const stopMatch = url.match(/(?:stop|arrival)Id=(stop_(?:area|point)[:\w]+)[\/&]?/);
+      if (stopMatch && stopMatch.length > 1) {
+        tmpStation = stopMatch[1];
+      }
+      if (tmpLine != '' && tmpStation != '') {
+        this._config = {
+          ...this._config,
+          ['line']: tmpLine,
+          ['station']: tmpStation,
+          ['way']: 'AR',
+        };
+      }
     }
     const target = ev.target;
     if (this[`_${target.configValue}`] === target.value) {

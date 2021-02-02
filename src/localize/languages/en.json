@@ -21,7 +21,8 @@
       "station": "Station",
       "line": "Line",
       "way": "Way",
-      "name": "Card name"
+      "name": "Card name",
+      "url": "IDFM URL"
     }
   },
   "timetable": {

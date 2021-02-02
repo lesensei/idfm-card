@@ -21,7 +21,8 @@
       "station": "Station",
       "line": "Ligne",
       "way": "Direction",
-      "name": "Nom de la carte"
+      "name": "Nom de la carte",
+      "url": "URL du site Île de France Mobilités"
     }
   },
   "timetable": {
