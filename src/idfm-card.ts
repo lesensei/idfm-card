@@ -1,19 +1,22 @@
-import { LitElement, html, customElement, property, CSSResult, TemplateResult, css } from 'lit-element';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-  HomeAssistant,
-  //hasConfigOrEntityChanged,
-  ActionHandlerEvent,
-  handleAction,
+  LitElement,
+  html,
+  TemplateResult,
+  css,
+  PropertyValues,
+  CSSResultGroup,
+} from 'lit';
+import { customElement, state } from "lit/decorators";
+import {
   LovelaceCardEditor,
   getLovelace,
-  LovelaceCard,
 } from 'custom-card-helpers';
 
 import './editor';
 
-import { IdFMCardConfig } from './types';
+import type { IdFMCardConfig } from './types';
 import { CARD_VERSION } from './const';
-
 import { localize } from './localize/localize';
 
 /* eslint no-console: 0 */
@@ -53,13 +56,11 @@ export class IdFMCard extends LitElement {
     return {};
   }
 
-  // TODO Add any properities that should cause your element to re-render here
-  @property() public hass!: HomeAssistant;
-  @property() private _config!: IdFMCardConfig;
-  @property() private _schedules!: Array<Schedule>;
-  private _lastUpdated = new Date();
+  @state() private config!: IdFMCardConfig;
+  @state() private _schedules!: Array<Schedule>;
+  @state() private _lastUpdated = new Date();
   private _timer;
-  private _error = false;
+  @state() private _error = false;
 
   public setConfig(config: IdFMCardConfig): void {
     if (!config || !config.station || !config.line || !config.way || !['A', 'R', 'AR'].includes(config.way)) {
@@ -70,28 +71,42 @@ export class IdFMCard extends LitElement {
       getLovelace().setEditMode(true);
     }
 
-    this._config = {
+    this.config = {
       name: localize('common.card.name'),
       ...config,
     };
   }
 
+  protected shouldUpdate(changedProps: PropertyValues): boolean {
+    if (!this.config) {
+      return false;
+    }
+
+    if (changedProps.has('_schedules') || changedProps.has('_lastUpdated') || changedProps.has('_error')) {
+      return true;
+    }
+
+    return false;
+  }
+
   private getSchedules(card: IdFMCard): void {
-    fetch(`https://api-iv.iledefrance-mobilites.fr/lines/${card._config.line}/stops/${card._config.station}/realtime`)
+    fetch(`https://api-iv.iledefrance-mobilites.fr/lines/${card.config.line}/stops/${card.config.station}/realtime`)
       .then((response) => {
         if (!response.ok) {
           card._error = true;
-          throw new Error(response.statusText);
+          //this.showError(response.statusText);
         }
         card._error = false;
         return response.json();
       })
       .then((data) => {
         card._lastUpdated = new Date();
-        card._schedules = data.filter((element: Schedule) => {
-          if (card._config.way == 'AR') return true;
-          return element.sens == (card._config.way == 'A' ? '1' : '-1');
-        });
+        if (data.length >= 1) {
+          card._schedules = data.filter((element: Schedule) => {
+            if (card.config.way == 'AR') return true;
+            return element.sens == (card.config.way == 'A' ? '1' : '-1');
+          });
+        }
       });
   }
 
@@ -110,10 +125,9 @@ export class IdFMCard extends LitElement {
   protected render(): TemplateResult | void {
     return html`
       <ha-card
-        .header=${this._config.name}
-        @action=${this._handleAction}
+        .header=${this.config.name}
         tabindex="0"
-        aria-label=${`IdFM: ${this._config.name}`}
+        aria-label=${`IdFM: ${this.config.name}`}
         class="idfm-card"
         ><table class="timetable">
           <tbody>
@@ -141,28 +155,22 @@ export class IdFMCard extends LitElement {
     `;
   }
 
-  private _handleAction(ev: ActionHandlerEvent): void {
-    if (this.hass && this._config && ev.detail.action) {
-      handleAction(this, this.hass, this._config, ev.detail.action);
-    }
-  }
-
   private showWarning(warning: string): TemplateResult {
     return html`<hui-warning>${warning}</hui-warning>`;
   }
 
   private showError(error: string): TemplateResult {
-    const errorCard = document.createElement('hui-error-card') as LovelaceCard;
+    const errorCard = document.createElement('hui-error-card') as LovelaceCardEditor;
     errorCard.setConfig({
       type: 'error',
       error,
-      origConfig: this._config,
+      origConfig: this.config,
     });
 
     return html`${errorCard}`;
   }
 
-  static get styles(): CSSResult {
+  static get styles(): CSSResultGroup {
     return css`
       .timetable {
         width: 100%;
@@ -181,6 +189,7 @@ export class IdFMCard extends LitElement {
         font-family: Arial, Helvetica, sans-serif;
         font-weight: bold;
         color: darkblue;
+        background-color: #FFFFF0;
       }
       .idfm-entry {
         border-bottom: 1px solid gray;

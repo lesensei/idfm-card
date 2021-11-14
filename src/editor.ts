@@ -1,7 +1,10 @@
-import { LitElement, html, customElement, property, TemplateResult, CSSResult, css } from 'lit-element';
-import { HomeAssistant, fireEvent, LovelaceCardEditor } from 'custom-card-helpers';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { LitElement, html, TemplateResult, css, CSSResultGroup } from 'lit';
+import { fireEvent, LovelaceCardEditor } from 'custom-card-helpers';
 
 import { IdFMCardConfig } from './types';
+import { customElement, state } from 'lit/decorators';
+
 import { localize } from './localize/localize';
 
 const options = {
@@ -21,48 +24,48 @@ const options = {
 
 @customElement('idfm-card-editor')
 export class IdFMCardEditor extends LitElement implements LovelaceCardEditor {
-  @property() public hass?: HomeAssistant;
-  @property() private _config?: IdFMCardConfig;
-  @property() private _toggle?: boolean;
+  @state() private _config?: IdFMCardConfig;
+  @state() private _toggle?: boolean;
+  private _initialized = false;
 
   public setConfig(config: IdFMCardConfig): void {
     this._config = config;
   }
 
-  constructor() {
-    super();
-  }
-
-  get _name(): string {
-    if (this._config) {
-      return this._config.name || '';
+  protected shouldUpdate(): boolean {
+    if (!this._initialized) {
+      this._initialize();
     }
 
-    return '';
+    return true;
+  }
+
+  /*constructor() {
+    super();
+  }*/
+
+  get _name(): string {
+    return this._config?.name || '';
   }
 
   get _line(): string {
-    if (this._config) {
-      return this._config.line || '';
-    }
-
-    return '';
+    return this._config?.line || '';
   }
 
   get _station(): string {
-    if (this._config) {
-      return this._config.station || '';
-    }
-
-    return '';
+    return this._config?.station || '';
   }
 
   get _way(): string {
-    if (this._config) {
-      return this._config.way || '';
-    }
+    return this._config?.way || '';
+  }
 
-    return '';
+  get _show_warning(): boolean {
+    return this._config?.show_warning || false;
+  }
+
+  get _show_error(): boolean {
+    return this._config?.show_error || false;
   }
 
   /*connectedCallback(): void {
@@ -72,13 +75,6 @@ export class IdFMCardEditor extends LitElement implements LovelaceCardEditor {
   }*/
 
   protected render(): TemplateResult | void {
-    if (!this.hass) {
-      return html``;
-    }
-
-    // You can restrict on domain type
-    // const entities = Object.keys(this.hass.states).filter(eid => eid.substr(0, eid.indexOf('.')) === 'sun');
-
     return html`
       <div class="card-config">
         <div class="option" @click=${this._toggleOption} .option=${'required'}>
@@ -145,6 +141,11 @@ export class IdFMCardEditor extends LitElement implements LovelaceCardEditor {
     `;
   }
 
+  private _initialize(): void {
+    if (this._config === undefined) return;
+    this._initialized = true;
+  }
+
   private _toggleOption(ev): void {
     this._toggleThing(ev, options);
   }
@@ -163,27 +164,43 @@ export class IdFMCardEditor extends LitElement implements LovelaceCardEditor {
     const name =
       ev.target.configValue === undefined || ev.target.configValue === null ? ev.target.name : ev.target.configValue;
     //console.log(name + ' changed to ' + ev.target.value);
-    if (!this._config || !this.hass) {
+    if (!this._config) {
       return;
     }
     if (name == 'helper-url') {
       const url: string = decodeURIComponent(ev.target.value);
       let tmpLine = '';
       let tmpStation = '';
+      let tmpWay = '';
       const lineMatch = url.match(/(line[:\w]+)/);
       if (lineMatch && lineMatch.length > 1) {
         tmpLine = lineMatch[1];
       }
-      const stopMatch = url.match(/(?:stop|arrival)Id=(stop_(?:area|point)[:\w]+)[\/&]?/);
+      const stopMatch = url.match(/(?:stop|departure)Id=(stop_(?:area|point)[:\w]+)[\/&]?/);
       if (stopMatch && stopMatch.length > 1) {
         tmpStation = stopMatch[1];
+      }
+      const wayMatch = url.match(/direction=(-?1)/);
+      if (wayMatch && wayMatch.length > 1) {
+        console.log(wayMatch);
+        tmpWay = wayMatch[1] == '1' ? 'A' : 'R';
+        switch (wayMatch[1]) {
+          case '1':
+            tmpWay = 'A';
+            break;
+          case '-1':
+            tmpWay = 'R';
+            break;
+          default:
+            tmpWay = 'AR';
+        }
       }
       if (tmpLine != '' && tmpStation != '') {
         this._config = {
           ...this._config,
           ['line']: tmpLine,
           ['station']: tmpStation,
-          ['way']: 'AR',
+          ['way']: tmpWay,
         };
       }
     }
@@ -204,7 +221,7 @@ export class IdFMCardEditor extends LitElement implements LovelaceCardEditor {
     fireEvent(this, 'config-changed', { config: this._config });
   }
 
-  static get styles(): CSSResult {
+  static get styles(): CSSResultGroup {
     return css`
       .option {
         padding: 4px 0px;

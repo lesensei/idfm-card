@@ -1,10 +1,11 @@
-import { directive, PropertyPart } from 'lit-html';
+import { noChange } from 'lit';
+import { AttributePart, directive, Directive, DirectiveParameters } from 'lit/directive';
+
 
 import { ActionHandlerDetail, ActionHandlerOptions } from 'custom-card-helpers/dist/types';
 import { fireEvent } from 'custom-card-helpers';
 
-const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
-
+const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.maxTouchPoints > 0;
 interface ActionHandler extends HTMLElement {
   holdTime: number;
   bind(element: Element, options): void;
@@ -22,7 +23,8 @@ declare global {
 class ActionHandler extends HTMLElement implements ActionHandler {
   public holdTime = 500;
 
-  public ripple: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  // eslint-disable-line @typescript-eslint/no-explicit-any
+  public ripple: any;
 
   protected timer?: number;
 
@@ -160,21 +162,21 @@ class ActionHandler extends HTMLElement implements ActionHandler {
   }
 }
 
-customElements.define('action-handler-ratp', ActionHandler);
+customElements.define('action-handler-idfm', ActionHandler);
 
 const getActionHandler = (): ActionHandler => {
   const body = document.body;
-  if (body.querySelector('action-handler-retp')) {
-    return body.querySelector('action-handler-ratp') as ActionHandler;
+  if (body.querySelector('action-handler-idfm')) {
+    return body.querySelector('action-handler-idfm') as ActionHandler;
   }
 
-  const actionhandler = document.createElement('action-handler-ratp');
+  const actionhandler = document.createElement('action-handler-idfm');
   body.appendChild(actionhandler);
 
   return actionhandler as ActionHandler;
 };
 
-export const actionHandlerBind = (element: ActionHandlerElement, options: ActionHandlerOptions): void => {
+export const actionHandlerBind = (element: ActionHandlerElement, options?: ActionHandlerOptions): void => {
   const actionhandler: ActionHandler = getActionHandler();
   if (!actionhandler) {
     return;
@@ -182,6 +184,14 @@ export const actionHandlerBind = (element: ActionHandlerElement, options: Action
   actionhandler.bind(element, options);
 };
 
-export const actionHandler = directive((options: ActionHandlerOptions = {}) => (part: PropertyPart): void => {
-  actionHandlerBind(part.committer.element as ActionHandlerElement, options);
-});
+export const actionHandler = directive(
+  class extends Directive {
+    update(part: AttributePart, [options]: DirectiveParameters<this>) {
+      actionHandlerBind(part.element as ActionHandlerElement, options);
+      return noChange;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    render(_options?: ActionHandlerOptions) {}
+  },
+);
