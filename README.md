@@ -23,6 +23,8 @@ The simplest way to get started is to use the visual editor and paste a URL in t
 
 ## Installation
 
+The simplest way to install this card is to add this repository to HACS. If you wish to install it manually, you may follow the instructions below.
+
 ### Download
 
 Go to <https://github.com/lesensei/idfm-card/releases>, click on "Assets" and download the `idfm-card.js` file.
