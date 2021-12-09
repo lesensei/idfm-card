@@ -1,10 +1,8 @@
 import * as en from './languages/en.json';
-import * as nb from './languages/nb.json';
 import * as fr from './languages/fr.json';
 
 const languages: { [key: string]: object } = {
   en: en,
-  nb: nb,
   fr: fr,
 };
 

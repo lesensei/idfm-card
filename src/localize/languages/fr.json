@@ -2,6 +2,7 @@
   "common": {
     "version": "Version",
     "invalid_configuration": "Paramétrage incorrect",
+    "no_routes": "Aucune route ne correspond au paramétrage",
     "show_warning": "Afficher les avertissements",
     "card": {
       "name": "Carte Île de France Mobilité",
@@ -18,14 +19,19 @@
       "secondary": "Paramètres optionnels"
     },
     "parameters": {
-      "station": "Station",
+      "station": "Station de départ",
       "line": "Ligne",
-      "way": "Direction",
+      "direction": "Direction",
+      "arrivalStation": "Station d'arrivée",
       "name": "Nom de la carte",
+      "maxTrainsShown": "Nombre max de trains affichés",
+      "maxWaitMinutes": "Attente max pour les trains affichés",
       "url": "URL du site Île de France Mobilités"
     }
   },
   "timetable": {
+    "no_departures": "Pas de passage dans l'heure",
+    "no_departures_in": "Pas de passage dans les %maxwait% minutes",
     "headers": {
       "mission": "Code mission",
       "destination": "Destination",

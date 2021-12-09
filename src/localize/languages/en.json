@@ -2,6 +2,7 @@
   "common": {
     "version": "Version",
     "invalid_configuration": "Invalid configuration",
+    "no_routes": "No routes found matching the configuration",
     "show_warning": "Show Warning",
     "card": {
       "name": "Ile de France Mobilite Card",
@@ -18,14 +19,19 @@
       "secondary": "Optional parameters"
     },
     "parameters": {
-      "station": "Station",
       "line": "Line",
-      "way": "Way",
+      "direction": "Direction",
+      "station": "Departure station",
+      "arrivalStation": "Arrival station",
       "name": "Card name",
+      "maxTrainsShown": "Maximum number of trains shown",
+      "maxWaitMinutes": "Maximum wait time (in minutes) of trains shown",
       "url": "IDFM URL"
     }
   },
   "timetable": {
+    "no_departures": "No departure in the next hour",
+    "no_departures_in": "No departure in the next %maxwait% minutes",
     "headers": {
       "mission": "Mission code",
       "destination": "Destination",

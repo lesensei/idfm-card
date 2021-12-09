@@ -8,15 +8,18 @@ For now, this card is not based on any entity configuration. It will only make A
 
 ## Options
 
-| Name    | Type   | Requirement  | Description                  | Default              |
-| ------- | ------ | ------------ | ---------------------------- | -------------------- |
-| type    | string | **Required** | `custom:idfm-card`           |                      |
-| name    | string | **Optional** | Card name (used as header)   | `Prochains passages` |
-| line    | string | **Required** | ID of the line to monitor    |                      |
-| station | string | **Required** | ID of the station to monitor |                      |
-| way     | string | **Required** | Way to monitor (A, R, AR)    | `AR`                 |
+| Name           | Type   | Requirement  | Description                            | Default         |
+| -------------- | ------ | ------------ | -------------------------------------- | --------------- |
+| type           | string | **Required** | `custom:idfm-card`                     |                 |
+| name           | string | **Optional** | Header text                            | Depends on conf |
+| line           | string | **Required** | ID of the line to monitor              |                 |
+| station        | string | **Required** | ID of the station to monitor           |                 |
+| arrivalStation | string | **Optional** | ID of the destination station          |                 |
+| direction      | string | **Optional** | Direction to monitor (A, R, AR)        | `AR`            |
+| maxTrainsShown | number | **Optional** | Max number of trains to show           |                 |
+| maxWaitMinutes | number | **Optional** | Do not show trains due later than this |                 |
 
-At the moment, `line` and `station` IDs must be recovered from URLs on the Ile de France Mobilités. The goal is to make it easy using the editor card, but I don't know enough of Polymer to do that yet.
+The simplest way to get started is to use the visual editor and paste a URL in the helper field (see below).
 
 ## Installation
 
@@ -34,9 +37,9 @@ Go to Config > Lovelace dashboards -> Resources, click the bottom-right "add" bu
 
 ### Add the component to your dashboard
 
-1. Go to <https://me-deplacer.iledefrance-mobilites.fr/fiches-horaires/> and query the next departure times for your chosen transport line and station. Once you can see them displayed, copy your browsers URL.
-2. Back to HA, open your dashboard of choice, click the "hamburger" menu in the top right then "modify", and click the "add card" button in the bottom-right. Choose the IDFM card (probably "carte ile de france mobilité"), and paste the URL from the previous step. It should automatically populate the `line`, `station` and `way` fields. That last field you may want to fiddle with to find the value that suits your need between outward `A`, inward `R` or both `AR`. Note: for buses, AR is the only supported value.
-3. Add an optional title to your card if you wish and click "save".
+1. Go to <https://me-deplacer.iledefrance-mobilites.fr/fiches-horaires/> and query the next departure times for your chosen transport line and station. Once you can see them displayed, copy your browser's URL.
+2. Back to HA, open your dashboard of choice, click the "hamburger" menu in the top right then "modify", and click the "add card" button in the bottom-right. Choose the IDFM card (probably "Carte ile de france mobilité"), and paste the URL from the previous step. It should automatically populate the `line`, `station` and either the `arrivalStation` or the `direction` fields.
+3. Change the other optional fields if you wish (and lose the amazing automatic header if you change the `name`field !) and click "save".
 
 If step 2 above doesn't work for you, you can still find the IDs you need manually, though it is a bit harder. You will need to look at the URL from step 1 and find the line and stop_area parameters (beware, they are URL encoded).
 
