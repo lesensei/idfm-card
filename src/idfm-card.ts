@@ -470,6 +470,7 @@ export class IdFMCard extends LitElement {
       .idfm-from {
         display: inline-block;
         margin-left: 0.5em;
+        width: 80%;
       }
       .idfm-to {
         display: inline-block;
