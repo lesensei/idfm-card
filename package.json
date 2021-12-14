@@ -1,6 +1,6 @@
 {
   "name": "idfm-card",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Card to show upcoming trains or buses on the parisian transport network",
   "keywords": [
     "Paris",

@@ -181,6 +181,7 @@ export class IdFMCardEditor extends LitElement implements LovelaceCardEditor {
    *   - https://me-deplacer.iledefrance-mobilites.fr/fiches-horaires/tramway/line%3AIDFM%3AC01391/horaires?date=2021-11-20T18%3A20&direction=-1&routeId=route%3AIDFM%3AC01391-inbound&stopId=stop_area%3AIDFM%3A70620
    *   - https://me-deplacer.iledefrance-mobilites.fr/fiches-horaires/tramway/line%3AIDFM%3AC01794/horaires?date=2021-12-09T16%3A37&direction=-1&routeId=route%3AIDFM%3ARATP%3A13338-C01794-2575706&stopId=stop_area%3AIDFM%3A73918
    *   - https://me-deplacer.iledefrance-mobilites.fr/fiches-horaires/bus/line%3AIDFM%3AC00294/horaires?date=2021-12-09T16%3A42&direction=1&line=line%3AIDFM%3AC00294%7C%7C2%7CBus%7C&stopId=stop_point%3AIDFM%3A7574&transporter
+   *   - https://me-deplacer.iledefrance-mobilites.fr/fiches-horaires/train/line%3AIDFM%3AC01731/horaires?arrivalId=stop_area%3AIDFM%3A73626&date=2021-12-14T00%3A00&departureId=stop_area%3AIDFM%3A61727
    *
    * @param origUrl The URL of a realtime "next departures" page on the IdFM website
    *
