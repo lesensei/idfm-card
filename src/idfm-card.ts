@@ -195,7 +195,10 @@ export class IdFMCard extends LitElement {
    * @returns {Promise<Schedule[]>} unless something fails
    */
   private getSchedules(card: IdFMCard): Promise<unknown> {
-    return fetch(`https://api-iv.iledefrance-mobilites.fr/lines/${card.config.line}/stops/${card.config.station}/realtime`)
+    const url = `https://api-iv.iledefrance-mobilites.fr/lines/${card.config.line}`
+      + `/stops/${card.config.station}/`
+      + `${card.config.arrivalStation ? 'to/' + card.config.arrivalStation + '/' : ''}realtime`;
+    return fetch(url)
       .then((response) => {
         if (!response.ok) {
           card._error = true;
@@ -221,11 +224,14 @@ export class IdFMCard extends LitElement {
             // We have a direction or an arrival station, so we need to filter received schedules
             let tmpSch: Schedule[] = data.filter((sch: Schedule) => {
               if ((Number.parseInt(sch.time ?? '0')) > (card.config.maxWaitMinutes ?? 1000)) return false;
-              // A direction is configured and the info is present in the returned schedules (hurray !)
               if (card.config.direction && sch.sens) {
+                // A direction is configured and the info is present in the returned schedules (hurray !)
                 return sch.sens == (card.config.direction == 'A' ? '1' : '-1');
-              // Filter based on retained routes (see initialize())
+              } else if (!sch.lineDirection) {
+                // With neither direction nor last stop info, just let go and don't filter anything out...
+                return true;
               } else if (card.destInfo || card.config.direction) {
+                // Filter based on retained routes (see initialize())
                 return card.routeStops.filter((r) => {
                   return r.stops.filter((s) => {
                     /*
@@ -262,6 +268,9 @@ export class IdFMCard extends LitElement {
   }
 
   protected async initialize(): Promise<unknown> {
+    this.destInfo = undefined;
+    this.depInfo = undefined;
+
     // Get info for the line
     await this.loadLineInfo(this);
     // Load the routes for this line
