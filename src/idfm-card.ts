@@ -16,7 +16,7 @@ import {
 import './editor';
 
 import type { IdFMCardConfig } from './types';
-import { CARD_VERSION } from './const';
+import { CARD_VERSION, missionDests } from './const';
 import { localize } from './localize/localize';
 
 import { compareTwoStrings } from 'string-similarity';
@@ -223,6 +223,10 @@ export class IdFMCard extends LitElement {
           } else {
             // We have a direction or an arrival station, so we need to filter received schedules
             let tmpSch: Schedule[] = data.filter((sch: Schedule) => {
+              // If there's no lineDirection info and we can compute it based on vehicleName, just do it !
+              if (!sch.lineDirection && missionDests[card._line.id]?.[sch.vehicleName?.substr(0, 1)]) {
+                sch.lineDirection = missionDests[card._line.id]?.[sch.vehicleName?.substr(0, 1)]?.name;
+              }
               if ((Number.parseInt(sch.time ?? '0')) > (card.config.maxWaitMinutes ?? 1000)) return false;
               if (card.config.direction && sch.sens) {
                 // A direction is configured and the info is present in the returned schedules (hurray !)
