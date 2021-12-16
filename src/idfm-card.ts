@@ -209,7 +209,7 @@ export class IdFMCard extends LitElement {
       })
       .then((data) => {
         card._lastUpdated = new Date();
-        if (data.message == 'NO_REALTIME_SCHEDULES_FOUND') {
+        if (data?.nextDepartures?.errorMessage == 'NO_REALTIME_SCHEDULES_FOUND') {
           card._error = false;
           card._schedules = [{
             lineId: card._line.id,
@@ -217,12 +217,12 @@ export class IdFMCard extends LitElement {
             vehicleName: '',
             lineDirection: localize('timetable.no_departures')
           }];
-        } else if (data.length >= 1) {
+        } else if (data?.nextDepartures?.data?.length >= 1) {
           if (((card.config.direction ?? 'AR') == 'AR') && !card.destInfo) {
-            card._schedules = data;
+            card._schedules = data.nextDepartures.data;
           } else {
             // We have a direction or an arrival station, so we need to filter received schedules
-            let tmpSch: Schedule[] = data.filter((sch: Schedule) => {
+            let tmpSch: Schedule[] = data.nextDepartures.data.filter((sch: Schedule) => {
               // If there's no lineDirection info and we can compute it based on vehicleName, just do it !
               if (!sch.lineDirection && missionDests[card._line.id]?.[sch.vehicleName?.substr(0, 1)]) {
                 sch.lineDirection = missionDests[card._line.id]?.[sch.vehicleName?.substr(0, 1)]?.name;
