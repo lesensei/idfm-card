@@ -1,4 +1,4 @@
-export const CARD_VERSION = '0.0.6';
+export const CARD_VERSION = '0.0.6a';
 
 export const missionDests = {
     "line:IDFM:C01731": {
