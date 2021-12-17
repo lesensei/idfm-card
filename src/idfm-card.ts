@@ -92,8 +92,8 @@ export class IdFMCard extends LitElement {
   private _timer;
   @state() private _error = false;
   private routeStops: Array<RouteStops> = [];
-  private destInfo?: Stop;
-  private depInfo?: Stop;
+  @state() private _destInfo?: Stop;
+  @state() private _depInfo?: Stop;
   @state() private _line!: Line;
 
   public setConfig(config: IdFMCardConfig): void {
@@ -120,7 +120,9 @@ export class IdFMCard extends LitElement {
       this.initialize();
 
     if (changedProps.has('_schedules') || changedProps.has('_lastUpdated') ||
-        changedProps.has('_error') || changedProps.has('config')) {
+        changedProps.has('_error') || changedProps.has('config') ||
+        changedProps.has('_line') || changedProps.has('_depInfo') ||
+        changedProps.has('_destInfo')) {
       return true;
     }
 
@@ -128,157 +130,145 @@ export class IdFMCard extends LitElement {
   }
 
   /**
-   * Fetch the "mode" parameter for the given line and return true when equal to "Bus"
-   * @param {IdFMCard} card The IdFMCard with the IdFMCardConfig that holds the line ID
-   * @returns {Promise<Response>}
+   * Fetch basic info for the given line
    */
-  protected loadLineInfo(card: IdFMCard): Promise<unknown> {
-    return fetch(`https://api-iv.iledefrance-mobilites.fr/lines?lineEC=${card.config.line}`)
-      .then((response) => {
-        if (!response.ok) {
-          console.log("Error getting line info for '%s'", card.config.line);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        if (data?.lines?.length == 1) {
-          card._line = {
-            id: data.lines[0].id,
-            label: data.lines[0].label,
-            shortName: data.lines[0].shortName,
-            operator: data.lines[0].companies[0].label,
-            mode: data.lines[0].modeLabel,
-            color: data.lines[0].color,
-            textColor: data.lines[0].textColor
-          };
-        } else {
-          console.log("Got '%s' info details for line '%s'", data?.length, card.config.line);
-        }
-      });
+  protected async loadLineInfo(): Promise<void> {
+    const response = await fetch(`https://api-iv.iledefrance-mobilites.fr/lines?lineEC=${this.config.line}`);
+    if (!response.ok) {
+      console.log("Error getting line info for '%s'", this.config.line);
+    }
+    const data = await response.json();
+    if (data?.lines?.length == 1) {
+      this._line = {
+        id: data.lines[0].id,
+        label: data.lines[0].label,
+        shortName: data.lines[0].shortName,
+        operator: data.lines[0].companies[0].label,
+        mode: data.lines[0].modeLabel,
+        color: data.lines[0].color,
+        textColor: data.lines[0].textColor
+      };
+    } else {
+      console.log("Got '%s' info details for line '%s'", data?.length, this.config.line);
+    }
   }
 
   /**
-   * Loads routes and their repsective stops for the given line
-   * @param {IdFMCard} card The {IdFMCard} with the {IdFMCardConfig} that holds the line ID
-   * @returns {Promise<Response>}
+   * Loads routes and their respective stops for the given line
    */
-  protected loadRouteStops(card: IdFMCard): Promise<unknown> {
-    return fetch(`https://api-iv.iledefrance-mobilites.fr/lines/${card.config.line}/stops?stopPoints=true&routes=true`)
-      .then((response) => {
-        if (!response.ok) {
-          console.log("Error getting stops for line '%s'", card.config.line);
-        }
-        return response.json();
-      })
-      .then((data: RouteStops[]) => {
-        if (data?.length >= 1) {
-          card.routeStops = data;
-          data.forEach((r) => {
-            r.stops.forEach((s) => {
-              if (s.id == card.config.station || s.stopArea?.id == card.config.station) {
-                card.depInfo = s.stopArea;
-              }
-              if (s.id == card.config.arrivalStation || s.stopArea?.id == card.config.arrivalStation) {
-                card.destInfo = s.stopArea;
-              }
-            });
-          });
-        } else {
-          console.log("Got no stops data for line '%s'", card.config.line);
-        }
-      });
-  }
-
-  /**
-   * Loads next scheduled stops for the given line at the given station
-   * @param {IdFMCard} card The {IdFMCard} with the {IdFMCardConfig} that holds the line ID
-   * @returns {Promise<Schedule[]>} unless something fails
-   */
-  private getSchedules(card: IdFMCard): Promise<unknown> {
-    const url = `https://api-iv.iledefrance-mobilites.fr/lines/${card.config.line}`
-      + `/stops/${card.config.station}/`
-      + `${card.config.arrivalStation ? 'to/' + card.config.arrivalStation + '/' : ''}realtime`;
-    return fetch(url)
-      .then((response) => {
-        if (!response.ok) {
-          card._error = true;
-        } else {
-          card._error = false;
-        }
-        return response.json();
-      })
-      .then((data) => {
-        card._lastUpdated = new Date();
-        if (data?.nextDepartures?.errorMessage == 'NO_REALTIME_SCHEDULES_FOUND') {
-          card._error = false;
-          card._schedules = [{
-            lineId: card._line.id,
-            shortName: card._line.shortName,
-            vehicleName: '',
-            lineDirection: localize('timetable.no_departures')
-          }];
-        } else if (data?.nextDepartures?.data?.length >= 1) {
-          if (((card.config.direction ?? 'AR') == 'AR') && !card.destInfo) {
-            card._schedules = data.nextDepartures.data;
-          } else {
-            // We have a direction or an arrival station, so we need to filter received schedules
-            let tmpSch: Schedule[] = data.nextDepartures.data.filter((sch: Schedule) => {
-              // If there's no lineDirection info and we can compute it based on vehicleName, just do it !
-              if (!sch.lineDirection && missionDests[card._line.id]?.[sch.vehicleName?.substr(0, 1)]) {
-                sch.lineDirection = missionDests[card._line.id]?.[sch.vehicleName?.substr(0, 1)]?.name;
-              }
-              if ((Number.parseInt(sch.time ?? '0')) > (card.config.maxWaitMinutes ?? 1000)) return false;
-              if (card.config.direction && sch.sens) {
-                // A direction is configured and the info is present in the returned schedules (hurray !)
-                return sch.sens == (card.config.direction == 'A' ? '1' : '-1');
-              } else if (!sch.lineDirection) {
-                // With neither direction nor last stop info, just let go and don't filter anything out...
-                return true;
-              } else if (card.destInfo || card.config.direction) {
-                // Filter based on retained routes (see initialize())
-                return card.routeStops.filter((r) => {
-                  return r.stops.filter((s) => {
-                    /*
-                     * Because sometimes public transport people can be quite playful, the destination's
-                     * name in some cases is not the exact name of a station (it can actually differ
-                     * quite a lot), so we need a clever algorithm for comparison.
-                     * The threshold here (0.60) is quite arbitrary but kinda seems to
-                     * approximately pretty much work OK, I guess ?
-                     */
-                    return compareTwoStrings(
-                      s.stopArea?.name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
-                      sch.lineDirection
-                    ) >= 0.60;
-                  }).length > 0;
-                }).length > 0;
-              }
-              return null;
-            });
-            if (card.config.maxWaitMinutes && tmpSch.length == 0) {
-              tmpSch = [{
-                lineId: card._line.id,
-                shortName: card._line.shortName,
-                vehicleName: '',
-                lineDirection: localize('timetable.no_departures_in', '%maxwait%', card.config.maxWaitMinutes.toString())
-              }];
-            }
-            if (card.config.maxTrainsShown) {
-              tmpSch = tmpSch.slice(0, card.config.maxTrainsShown);
-            }
-            card._schedules = tmpSch;
+  protected async loadRouteStops(): Promise<void> {
+    const response = await fetch(`https://api-iv.iledefrance-mobilites.fr/lines/${this.config.line}/stops?stopPoints=true&routes=true`);
+    if (!response.ok) {
+      console.log("Error getting stops for line '%s'", this.config.line);
+    }
+    const data = await response.json();
+    if (data?.length >= 1) {
+      this.routeStops = data;
+      data.forEach((r) => {
+        r.stops.forEach((s) => {
+          if (s.id == this.config.station || s.stopArea?.id == this.config.station) {
+            this._depInfo = s.stopArea;
           }
-        }
+          if (s.id == this.config.arrivalStation || s.stopArea?.id == this.config.arrivalStation) {
+            this._destInfo = s.stopArea;
+          }
+        });
       });
+    } else {
+      console.log("Got no stops data for line '%s'", this.config.line);
+    }
   }
 
-  protected async initialize(): Promise<unknown> {
-    this.destInfo = undefined;
-    this.depInfo = undefined;
+  /**
+   * Loads the next scheduled stops for the given line at the given station
+   */
+  private async getSchedules(): Promise<void> {
+    const url = `https://api-iv.iledefrance-mobilites.fr/lines/${this.config.line}`
+      + `/stops/${this.config.station}/`
+      + `${this.config.arrivalStation ? 'to/' + this.config.arrivalStation + '/' : ''}realtime`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      this._error = true;
+    } else {
+      this._error = false;
+    }
+    const data = await response.json();
+    this._lastUpdated = new Date();
+    if (data?.nextDepartures?.errorMessage == 'NO_REALTIME_SCHEDULES_FOUND') {
+      this._error = false;
+      this._schedules = [{
+        lineId: this._line.id,
+        shortName: this._line.shortName,
+        vehicleName: '',
+        lineDirection: localize('timetable.no_departures')
+      }];
+    } else if (data?.nextDepartures?.data?.length >= 1) {
+      if (((this.config.direction ?? 'AR') == 'AR') && !this._destInfo) {
+        this._schedules = data.nextDepartures.data;
+      } else {
+        // We have a direction or an arrival station, so we need to filter received schedules
+        let tmpSch: Schedule[] = data.nextDepartures.data.filter((sch: Schedule) => {
+          // If there's no lineDirection info and we can compute it based on vehicleName, just do it !
+          if (!sch.lineDirection && missionDests[this._line.id]?.[sch.vehicleName?.substr(0, 1)]) {
+            sch.lineDirection = missionDests[this._line.id]?.[sch.vehicleName?.substr(0, 1)]?.name;
+          }
+          if ((Number.parseInt(sch.time ?? '0')) > (this.config.maxWaitMinutes ?? 1000))
+            return false;
+          if (this.config.direction && sch.sens) {
+            // A direction is configured and the info is present in the returned schedules (hurray !)
+            return sch.sens == (this.config.direction == 'A' ? '1' : '-1');
+          } else if (!sch.lineDirection) {
+            // With neither direction nor last stop info, just let go and don't filter anything out...
+            return true;
+          } else if (this._destInfo || this.config.direction) {
+            // Filter based on retained routes (see initialize())
+            return this.routeStops.filter((r) => {
+              return r.stops.filter((s) => {
+                /*
+                 * Because sometimes public transport people can be quite playful, the destination's
+                 * name in some cases is not the exact name of a station (it can actually differ
+                 * quite a lot), so we need a clever algorithm for comparison.
+                 * The threshold here (0.60) is quite arbitrary but kinda seems to
+                 * approximately pretty much work OK, I guess ?
+                 */
+                return compareTwoStrings(
+                  s.stopArea?.name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+                  sch.lineDirection
+                ) >= 0.6;
+              }).length > 0;
+            }).length > 0;
+          }
+          return null;
+        });
+        if (this.config.maxWaitMinutes && tmpSch.length == 0) {
+          tmpSch = [{
+            lineId: this._line.id,
+            shortName: this._line.shortName,
+            vehicleName: '',
+            lineDirection: localize('timetable.no_departures_in', '%maxwait%', this.config.maxWaitMinutes.toString())
+          }];
+        }
+        if (this.config.maxTrainsShown) {
+          tmpSch = tmpSch.slice(0, this.config.maxTrainsShown);
+        }
+        this._schedules = tmpSch;
+      }
+    }
+  }
+
+  /**
+   * Initialize the card based on its config.
+   * Most notably, analyze routes and determine the ones we're interested in based on the config.
+   * Also, set the timer for periodic refresh.
+   */
+  protected async initialize(): Promise<void> {
+    this._destInfo = undefined;
+    this._depInfo = undefined;
 
     // Get info for the line
-    await this.loadLineInfo(this);
+    await this.loadLineInfo();
     // Load the routes for this line
-    await this.loadRouteStops(this);
+    await this.loadRouteStops();
 
     /*
      * Find all routes corresponding to our configuration for cases where the API
@@ -287,14 +277,14 @@ export class IdFMCard extends LitElement {
     if (this.config.arrivalStation || ((this.config.direction ?? 'AR') != 'AR')) {
       const tmpRoutes = this.routeStops.filter((r) => {
         // Remove all stops before departure station
-        while (r.stops.length > 0 && r.stops[0].stopArea?.id != this.depInfo?.id) {
+        while (r.stops.length > 0 && r.stops[0].stopArea?.id != this._depInfo?.id) {
           r.stops.shift();
         }
         // If no stop remains (departure station was not found in route), filter out this route
         if (r.stops.length == 0) return false;
         if (this.config.arrivalStation) {
           // Check that the arrival station is also in route
-          const tmpDest = r.stops.filter((s) => { return s.stopArea?.id == this.destInfo?.id });
+          const tmpDest = r.stops.filter((s) => { return s.stopArea?.id == this._destInfo?.id });
           // and store info about it for later use
           /*if (!this.destInfo && tmpDest.length > 0)
             this.destInfo = tmpDest[0];*/
@@ -314,9 +304,8 @@ export class IdFMCard extends LitElement {
     this._error = false;
 
     // Card setup finished, get the schedules !
-    const tmpPromise = this.getSchedules(this);
-    this._timer = setInterval(this.getSchedules, 30000, this);
-    return tmpPromise;
+    this.getSchedules();
+    this._timer = setInterval(this.getSchedules, 30000);
   }
 
   connectedCallback(): void {
@@ -355,8 +344,8 @@ export class IdFMCard extends LitElement {
       html`${this._line.shortName.substr(0, this._line.shortName.length - 1)}<span class="idfm-tram-letter">${this._line.shortName.substr(this._line.shortName.length - 1, 1)}</span>` :
       this._line.shortName
       } </span>
-      <div class="idfm-from"><span class="idfm-dep">${this.depInfo?.name}</span></div>
-      ${this.destInfo ? destSpan(this.destInfo) : ''}
+      <div class="idfm-from"><span class="idfm-dep">${this._depInfo?.name}</span></div>
+      ${this._destInfo ? destSpan(this._destInfo) : ''}
     `;
   }
 
