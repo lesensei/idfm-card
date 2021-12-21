@@ -191,70 +191,81 @@ export class IdFMCard extends LitElement {
       this._error = true;
     } else {
       this._error = false;
-    }
-    const data = await response.json();
-    const scheds: Schedule[] = data?.nextDepartures?.data;
-    if (data?.nextDepartures?.errorMessage == 'NO_REALTIME_SCHEDULES_FOUND') {
-      this._error = false;
-      this._schedules = [{
-        lineId: this._line.id,
-        shortName: this._line.shortName,
-        vehicleName: '',
-        lineDirection: localize('timetable.no_departures')
-      }];
-    } else if (scheds?.length >= 1) {
-      if (((this.config.direction ?? 'AR') == 'AR') && !this._destInfo) {
-        this._schedules = scheds;
-      } else {
-        // We have a direction or an arrival station, so we need to filter received schedules
-        let tmpSch: Schedule[] = scheds.filter((sch: Schedule) => {
-          // If there's no lineDirection info and we can compute it based on vehicleName, just do it !
-          if (!sch.lineDirection && missionDests[this._line.id]?.[sch.vehicleName?.substring(0, 1)]) {
-            sch.lineDirection = missionDests[this._line.id][sch.vehicleName.substring(0, 1)].name;
-          }
-          if ((Number.parseInt(sch.time ?? '0')) > (this.config.maxWaitMinutes ?? 1000))
-            return false;
-          if (this.config.direction && sch.sens) {
-            // A direction is configured and the info is present in the returned schedules (hurray !)
-            return sch.sens == (this.config.direction == 'A' ? '1' : '-1');
-          } else if (!sch.lineDirection) {
-            // With neither direction nor last stop info, just let go and don't filter the schedule out...
-            return true;
-          } else if (this._destInfo || this.config.direction) {
-            // Filter based on retained routes (see initialize())
-            return this.routeStops.filter((r) => {
-              return r.stops.filter((s) => {
-                /*
-                 * Because sometimes public transport people can be quite playful, the destination's
-                 * name in some cases is not the exact name of a station (it can actually differ
-                 * quite a lot), so we need a clever algorithm for comparison.
-                 * The threshold here (0.60) is quite arbitrary but kinda seems to
-                 * approximately pretty much work OK, I guess ?
-                 */
-                return compareTwoStrings(
-                  s.stopArea?.name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
-                  sch.lineDirection
-                ) >= 0.6;
+      const data = await response.json();
+      const scheds: Schedule[] = data?.nextDepartures?.data;
+      if (data?.nextDepartures?.errorMessage == 'NO_REALTIME_SCHEDULES_FOUND') {
+        this._schedules = [{
+          lineId: this._line.id,
+          shortName: this._line.shortName,
+          vehicleName: '',
+          lineDirection: localize('timetable.no_departures')
+        }];
+      } else if (data?.nextDepartures?.statusCode != 200) {
+        this._error = true;
+        console.log("IdFM API returned code '%d' ('%s')", data.nextDepartures.statusCode, data.nextDepartures.errorMessage);
+      } else if (scheds?.length >= 1) {
+        if (((this.config.direction ?? 'AR') == 'AR') && !this._destInfo) {
+          this._schedules = scheds;
+        } else {
+          // We have a direction or an arrival station, so we need to filter received schedules
+          let tmpSch: Schedule[] = scheds.filter((sch: Schedule) => {
+            // If there's no lineDirection info and we can compute it based on vehicleName, just do it !
+            if (!sch.lineDirection && missionDests[this._line.id]?.[sch.vehicleName?.substring(0, 1)]) {
+              sch.lineDirection = missionDests[this._line.id][sch.vehicleName.substring(0, 1)].name;
+            }
+            if ((Number.parseInt(sch.time ?? '0')) > (this.config.maxWaitMinutes ?? 1000))
+              return false;
+            if (this.config.direction && sch.sens) {
+              // A direction is configured and the info is present in the returned schedules (hurray !)
+              return sch.sens == (this.config.direction == 'A' ? '1' : '-1');
+            } else if (!sch.lineDirection) {
+              // With neither direction nor last stop info, just let go and don't filter the schedule out...
+              return true;
+            } else if (this._destInfo || this.config.direction) {
+              // Filter based on retained routes (see initialize())
+              return this.routeStops.filter((r) => {
+                return r.stops.filter((s) => {
+                  /*
+                  * Because sometimes public transport people can be quite playful, the destination's
+                  * name in some cases is not the exact name of a station (it can actually differ
+                  * quite a lot), so we need a clever algorithm for comparison.
+                  * The threshold here (0.60) is quite arbitrary but kinda seems to
+                  * approximately pretty much work OK, I guess ?
+                  */
+                  return compareTwoStrings(
+                    s.stopArea?.name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+                    sch.lineDirection
+                  ) >= 0.6;
+                }).length > 0;
               }).length > 0;
-            }).length > 0;
+            }
+            return null;
+          });
+          if (this.config.maxWaitMinutes && tmpSch.length == 0) {
+            tmpSch = [{
+              lineId: this._line.id,
+              shortName: this._line.shortName,
+              vehicleName: '',
+              lineDirection: localize('timetable.no_departures_in', '%maxwait%', this.config.maxWaitMinutes.toString())
+            }];
           }
-          return null;
-        });
-        if (this.config.maxWaitMinutes && tmpSch.length == 0) {
-          tmpSch = [{
-            lineId: this._line.id,
-            shortName: this._line.shortName,
-            vehicleName: '',
-            lineDirection: localize('timetable.no_departures_in', '%maxwait%', this.config.maxWaitMinutes.toString())
-          }];
+          if (this.config.maxTrainsShown) {
+            tmpSch = tmpSch.slice(0, this.config.maxTrainsShown);
+          }
+          if (tmpSch.length >= 1) {
+            this._schedules = tmpSch;
+          } else {
+            this._schedules = [{
+              lineId: this._line.id,
+              shortName: this._line.shortName,
+              vehicleName: '',
+              lineDirection: localize('timetable.no_departures')
+            }];
+          }
         }
-        if (this.config.maxTrainsShown) {
-          tmpSch = tmpSch.slice(0, this.config.maxTrainsShown);
-        }
-        this._schedules = tmpSch;
       }
+      this._lastUpdated = new Date();
     }
-    this._lastUpdated = new Date();
   }
 
   /**
@@ -303,6 +314,9 @@ export class IdFMCard extends LitElement {
 
     // Card setup finished, get the schedules !
     this.getSchedules();
+    if (this._timer) {
+      clearInterval(this._timer);
+    }
     this._timer = setInterval(this.getSchedules.bind(this), 30000);
   }
 
