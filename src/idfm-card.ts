@@ -161,7 +161,7 @@ export class IdFMCard extends LitElement {
     if (!response.ok) {
       console.log("Error getting stops for line '%s'", this.config.line);
     }
-    const data = await response.json();
+    const data: RouteStops[] = await response.json();
     if (data?.length >= 1) {
       this.routeStops = data;
       data.forEach((r) => {
@@ -193,6 +193,7 @@ export class IdFMCard extends LitElement {
       this._error = false;
     }
     const data = await response.json();
+    const scheds: Schedule[] = data?.nextDepartures?.data;
     this._lastUpdated = new Date();
     if (data?.nextDepartures?.errorMessage == 'NO_REALTIME_SCHEDULES_FOUND') {
       this._error = false;
@@ -202,15 +203,15 @@ export class IdFMCard extends LitElement {
         vehicleName: '',
         lineDirection: localize('timetable.no_departures')
       }];
-    } else if (data?.nextDepartures?.data?.length >= 1) {
+    } else if (scheds?.length >= 1) {
       if (((this.config.direction ?? 'AR') == 'AR') && !this._destInfo) {
-        this._schedules = data.nextDepartures.data;
+        this._schedules = scheds;
       } else {
         // We have a direction or an arrival station, so we need to filter received schedules
-        let tmpSch: Schedule[] = data.nextDepartures.data.filter((sch: Schedule) => {
+        let tmpSch: Schedule[] = scheds.filter((sch: Schedule) => {
           // If there's no lineDirection info and we can compute it based on vehicleName, just do it !
-          if (!sch.lineDirection && missionDests[this._line.id]?.[sch.vehicleName?.substr(0, 1)]) {
-            sch.lineDirection = missionDests[this._line.id]?.[sch.vehicleName?.substr(0, 1)]?.name;
+          if (!sch.lineDirection && missionDests[this._line.id]?.[sch.vehicleName?.substring(0, 1)]) {
+            sch.lineDirection = missionDests[this._line.id][sch.vehicleName.substring(0, 1)].name;
           }
           if ((Number.parseInt(sch.time ?? '0')) > (this.config.maxWaitMinutes ?? 1000))
             return false;
@@ -218,7 +219,7 @@ export class IdFMCard extends LitElement {
             // A direction is configured and the info is present in the returned schedules (hurray !)
             return sch.sens == (this.config.direction == 'A' ? '1' : '-1');
           } else if (!sch.lineDirection) {
-            // With neither direction nor last stop info, just let go and don't filter anything out...
+            // With neither direction nor last stop info, just let go and don't filter the schedule out...
             return true;
           } else if (this._destInfo || this.config.direction) {
             // Filter based on retained routes (see initialize())
@@ -285,9 +286,6 @@ export class IdFMCard extends LitElement {
         if (this.config.arrivalStation) {
           // Check that the arrival station is also in route
           const tmpDest = r.stops.filter((s) => { return s.stopArea?.id == this._destInfo?.id });
-          // and store info about it for later use
-          /*if (!this.destInfo && tmpDest.length > 0)
-            this.destInfo = tmpDest[0];*/
           return tmpDest.length > 0;
         } else if ((this.config.direction ?? 'AR') != 'AR') {
           return r.sens == (this.config.direction == 'A' ? '1' : '-1');
