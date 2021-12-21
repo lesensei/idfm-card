@@ -303,12 +303,13 @@ export class IdFMCard extends LitElement {
 
     // Card setup finished, get the schedules !
     this.getSchedules();
-    this._timer = setInterval(this.getSchedules, 30000);
+    this._timer = setInterval(this.getSchedules.bind(this), 30000);
   }
 
   connectedCallback(): void {
     super.connectedCallback();
     this._schedules = [];
+    this._lastUpdated = undefined;
     this.initialize();
   }
 
