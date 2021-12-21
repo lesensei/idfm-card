@@ -88,7 +88,7 @@ export class IdFMCard extends LitElement {
 
   @state() private config!: IdFMCardConfig;
   @state() private _schedules!: Array<Schedule>;
-  @state() private _lastUpdated = new Date();
+  @state() private _lastUpdated?: Date;
   private _timer;
   @state() private _error = false;
   private routeStops: Array<RouteStops> = [];
@@ -194,7 +194,6 @@ export class IdFMCard extends LitElement {
     }
     const data = await response.json();
     const scheds: Schedule[] = data?.nextDepartures?.data;
-    this._lastUpdated = new Date();
     if (data?.nextDepartures?.errorMessage == 'NO_REALTIME_SCHEDULES_FOUND') {
       this._error = false;
       this._schedules = [{
@@ -255,6 +254,7 @@ export class IdFMCard extends LitElement {
         this._schedules = tmpSch;
       }
     }
+    this._lastUpdated = new Date();
   }
 
   /**
@@ -377,7 +377,7 @@ export class IdFMCard extends LitElement {
             )}
           </tbody>
         </table>
-        <span class="lastUpdated">${localize('timetable.lastupdated')}: ${this._lastUpdated.toLocaleTimeString()}</span>
+        <span class="lastUpdated">${localize('timetable.lastupdated')}: ${this._lastUpdated ? this._lastUpdated.toLocaleTimeString() : '🗘'}</span>
         ${this._error ? html`<span class="updateError"> !</span>` : ''}
       </ha-card>
     `;
