@@ -16,10 +16,10 @@ import {
 import './editor';
 
 import type { IdFMCardConfig } from './types';
-import { CARD_VERSION, missionDests } from './const';
+import { CARD_VERSION, missionDests, v2modes } from './const';
 import { localize } from './localize/localize';
 
-import { compareTwoStrings } from 'string-similarity';
+import { stringSimilarity } from 'string-similarity-js';
 
 /* eslint no-console: 0 */
 console.info(
@@ -183,9 +183,15 @@ export class IdFMCard extends LitElement {
    * Loads the next scheduled stops for the given line at the given station
    */
   private async getSchedules(): Promise<void> {
-    const url = `https://api-iv.iledefrance-mobilites.fr/lines/${this.config.line}`
-      + `/stops/${this.config.station}/`
-      + `${this.config.arrivalStation ? 'to/' + this.config.arrivalStation + '/' : ''}realtime`;
+    let url = 'https://api-iv.iledefrance-mobilites.fr/lines/';
+    if (v2modes.includes(this._line.mode)) {
+      url += 'v2/';
+    }
+    url += `${this.config.line}/stops/${this.config.station}/`;
+    if (!v2modes.includes(this._line.mode) && this.config.arrivalStation) {
+      url += `to/${this.config.arrivalStation}/`;
+    }
+    url += 'realtime';
     const response = await fetch(url);
     if (!response.ok) {
       this._error = true;
@@ -232,9 +238,9 @@ export class IdFMCard extends LitElement {
                   * The threshold here (0.60) is quite arbitrary but kinda seems to
                   * approximately pretty much work OK, I guess ?
                   */
-                  return compareTwoStrings(
-                    s.stopArea?.name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
-                    sch.lineDirection
+                  return stringSimilarity(
+                    s.stopArea?.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "") ?? "",
+                    sch.lineDirection ?? ""
                   ) >= 0.6;
                 }).length > 0;
               }).length > 0;
@@ -342,11 +348,11 @@ export class IdFMCard extends LitElement {
     `
 
     const pictoStyle = (line: Line) => {
-      let style = `color: #${line.textColor}; `;
+      let style = '';
       if (line.mode == 'Tramway') {
-        style += `border-color: #${line.color};`;
+        style += `color: #000000; border-color: #${line.color};`;
       } else {
-        style += `background-color: #${line.color};`;
+        style += `color: #${line.textColor}; background-color: #${line.color};`;
       }
       return style;
     }
@@ -379,7 +385,10 @@ export class IdFMCard extends LitElement {
                 html`
                   <tr class="idfm-entry">
                     <td class="idfm-code"><span>${schedule.vehicleName}</span></td>
-                    <td class="idfm-destination"><span>${schedule.lineDirection}</span></td>
+                    <td class="idfm-destination">
+                      <span>${schedule.lineDirection.replace('<METRO>', '')}</span>
+                      ${schedule.lineDirection.includes('<METRO>') ? html`<span class="svg-transport-metro"></span>` : ''}
+                    </td>
                     <td class="idfm-delay-msg">
                       <div class="idfm-delay-div">
                         <span class="idfm-delay">${schedule.time ? schedule.time : ''}</span>
@@ -558,6 +567,15 @@ export class IdFMCard extends LitElement {
         color: red;
         font-weight: bold;
         font-size: 0.7em;
+      }
+      .svg-transport-metro {
+        background: url(https://me-deplacer.iledefrance-mobilites.fr/stif_static/assets_vianavigo/dist/252135d7ba060f8e510baff4a3d7e3b9.svg) no-repeat;
+        background-position: 46.15384615384615% 66.66666666666667%;
+        background-size: 80px 60px;
+        display: inline-block;
+        width: 15px;
+        height: 15px;
+        vertical-align: sub;
       }
     `;
   }

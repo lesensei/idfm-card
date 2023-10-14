@@ -16,7 +16,9 @@ export const missionDests = {
         },
         "Z": {
             "id": "stop_area:IDFM:61926",
-            "name": "Melun,"
+            "name": "Melun",
         },
     },
 }
+
+export const v2modes = ['Metro', 'Bus', 'Tramway'];
